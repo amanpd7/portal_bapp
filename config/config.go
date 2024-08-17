@@ -5,10 +5,19 @@ import (
     "github.com/spf13/viper"
 )
 
+type SmtpConfig struct {
+    Host     string
+    Port     string
+    User     string
+    Password string
+}
+
 type Config struct {
     Database DatabaseConfig
 	JWT      JWTConfig
 	Server	 ServerConfig
+    Smtp     SmtpConfig
+    Admin    Admin
 }
 
 type DatabaseConfig struct {
@@ -25,6 +34,10 @@ type JWTConfig struct {
 
 type ServerConfig struct {
 	Port string
+}
+
+type Admin struct {
+    Email   string
 }
 
 var AppConfig Config

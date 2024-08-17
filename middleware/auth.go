@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -10,16 +11,19 @@ import (
 var jwtKey = []byte(viper.GetString("jwt.secret"))
 
 type Claims struct {
-	UserID int `json:"user_id"`
+	Username string `json:"username"`
+	UserID   int    `json:"user_id"`
 	jwt.StandardClaims
 }
 
-func GenerateJWT(userID int) (string, error) {
+func GenerateJWT(userID int, username string) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
-		UserID: userID,
+		Username: username,
+		UserID:   userID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
+			Issuer:    "panel.org.in",
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -35,11 +39,17 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return jwtKey, nil
 	})
+
 	if err != nil {
-		return nil, err
+		if err == jwt.ErrSignatureInvalid {
+			return nil, fmt.Errorf("invalid token signature")
+		}
+		return nil, fmt.Errorf("error parsing token: %w", err)
 	}
+
 	if !token.Valid {
-		return nil, err
+		return nil, fmt.Errorf("invalid token")
 	}
+
 	return claims, nil
 }

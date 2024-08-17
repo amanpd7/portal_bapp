@@ -17,7 +17,7 @@ func Router() *mux.Router {
 
 	// Public routes
 	r.HandleFunc("/login", api.LoginHandler).Methods("POST")
-	r.HandleFunc("/form", api.RegisterHandler).Methods("POST")
+	r.HandleFunc("/forms", api.FormHandler).Methods("POST")
 	r.HandleFunc("/register", api.RegisterHandler).Methods("POST")
 
 	// Initialize database connection

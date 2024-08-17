@@ -10,3 +10,12 @@ jwt:
 
 server:
   port: 6969
+
+smtp:
+  host: "smtp.gmail.com"
+  port: 587
+  user: "aman7468051218@gmail.com"
+  password: ""
+
+admin:
+  email: "amanprasad7468@gmail.com"
