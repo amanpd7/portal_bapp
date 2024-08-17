@@ -1,9 +1,9 @@
 database:
   host: "localhost"
   port: 5432
-  user: "rfid"
-  password: "trishakti"
-  dbname: "book_keep"
+  user: "panel"
+  password: "panel@org!in"
+  dbname: "panel"
 
 jwt:
   secret: "portal.bosse"
@@ -15,7 +15,7 @@ smtp:
   host: "smtp.gmail.com"
   port: 587
   user: "aman7468051218@gmail.com"
-  password: ""
+  password: "qmzbmxxlofrigwzv"
 
 admin:
   email: "amanprasad7468@gmail.com"
