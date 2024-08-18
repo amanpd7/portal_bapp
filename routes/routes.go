@@ -16,9 +16,9 @@ func Router() *mux.Router {
 	r.Use(middleware.CORSMiddleware)
 
 	// Public routes
-	r.HandleFunc("/login", api.LoginHandler).Methods("POST")
-	r.HandleFunc("/forms", api.FormHandler).Methods("POST")
-	r.HandleFunc("/register", api.RegisterHandler).Methods("POST")
+	r.HandleFunc("/login", api.LoginHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/forms", api.FormHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/register", api.RegisterHandler).Methods("POST", "OPTIONS")
 
 	// Initialize database connection
 	db.InitDB()

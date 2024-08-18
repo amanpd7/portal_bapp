@@ -128,33 +128,6 @@ func GeneratePDF(data map[string]interface{}) error {
 	return nil
 }
 
-func HandleEmailtoStudent(data map[string]interface{}) error {
-	studentEmail := data["emailAddress"].(string)
-	studentName := data["studentName"].(string)
-
-	subject := fmt.Sprintf("Admission Details for %s", studentName)
-	body := `
-		<html>
-		<body style="font-family: Arial, sans-serif; color: #333;">
-			<h2 style="color: #007BFF;">Student Details</h2>
-			<p>Dear Recipient,</p>
-			<p>Please find attached the student details and related images.</p>
-			<p>If you have any questions, please feel free to contact us.</p>
-			<p>Best regards,</p>
-			<p><strong>panel.org.in</strong></p>
-		</body>
-		</html>
-	`
-
-	pdfPath := "pdf/student_details.pdf"
-
-	err := SendEmail(studentEmail, subject, body, pdfPath, nil)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func HandleEmailtoAdmin(username string) error {
 	userbyName, err := db.FetchName(username)
 	if err != nil {
@@ -174,15 +147,13 @@ func HandleEmailtoAdmin(username string) error {
 		fmt.Printf("error reading uploads directory: %v", err)
 	}
 
-	// Collect all file paths
 	var imagePaths []string
 	for _, file := range files {
-		if !file.IsDir() { // Ensure it's a file, not a directory
+		if !file.IsDir() {
 			imagePaths = append(imagePaths, filepath.Join(uploadsDir, file.Name()))
 		}
 	}
 
-	// Include the PDF in the attachments
 	imagePaths = append(imagePaths, pdfPath)
 
 	subject := fmt.Sprintf("New Student Admission Details Submitted by %s", userbyName.Name)

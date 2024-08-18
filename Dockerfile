@@ -13,6 +13,6 @@ WORKDIR $APPHOME
 COPY --from=builder /main ./
 COPY ./config.yaml ./config.yaml
 RUN chmod 777 ./main
-EXPOSE 8080
+EXPOSE 6969
 WORKDIR ${APPHOME}
 CMD ["./main"]

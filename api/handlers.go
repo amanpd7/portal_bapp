@@ -47,25 +47,44 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Username   string `json:"username"`
-		Password   string `json:"password"`
-		Email      string `json:"email"`
-		Name       string `json:"name"`
-		SecretPass string `json:"secretpass"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
+		Name     string `json:"name"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if req.SecretPass == "portal_bapp" {
+
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+		return
+	}
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	claims, err := middleware.ValidateToken(tokenString)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	username := claims.Username
+	if username == "" {
+		http.Error(w, "Unknown user", http.StatusUnauthorized)
+		return
+	}
+
+	if username == "Admin" {
 		_, err := db.Register(req.Username, req.Password, req.Email, req.Name)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
-		http.Error(w, "Invalid secret", http.StatusUnauthorized)
+		http.Error(w, "Invalid user", http.StatusUnauthorized)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -86,10 +105,9 @@ func FormHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use the correct field based on your claims structure
-	username := claims.Username // Assuming your JWT has a "username" claim
+	username := claims.Username
 	if username == "" {
-		username = claims.Subject // Fall back to "sub" if "username" is not set
+		username = claims.Subject
 	}
 	if username == "" {
 		http.Error(w, "Unable to extract username", http.StatusUnauthorized)
@@ -175,13 +193,6 @@ func FormHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("PDF generated successfully!")
 		}
 
-		err = middleware.HandleEmailtoStudent(data)
-		if err != nil {
-			fmt.Printf("Error sending email to student: %v\n", err)
-		} else {
-			fmt.Println("Email to student sent successfully!")
-		}
-
 		err = middleware.HandleEmailtoAdmin(username)
 		if err != nil {
 			fmt.Printf("Error sending email to admin: %v\n", err)
@@ -190,7 +201,7 @@ func FormHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		middleware.RemoveFiles()
-		
+
 	}(data, username)
 
 }
