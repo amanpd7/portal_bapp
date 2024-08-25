@@ -8,7 +8,6 @@ import (
 	"net/smtp"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/aman1218/portal_bapp/config"
@@ -17,10 +16,10 @@ import (
 	"golang.org/x/exp/rand"
 )
 
-var formNumber int
+var formNumber string
 
 func init() {
-	formNumber, _ = strconv.Atoi(GenerateUniqueFormNumber())
+	formNumber = GenerateUniqueFormNumber()
 }
 
 func GeneratePDF(data map[string]interface{}) error {
@@ -69,7 +68,7 @@ func GeneratePDF(data map[string]interface{}) error {
 			pdf.Ln(8)
 		}
 	}
-	addField("Form Number", fmt.Sprintf("%d", formNumber))
+	addField("Form Number", formNumber)
 	addField("Student Name", fmt.Sprintf("%v", data["studentName"]))
 	addField("Father's Name", fmt.Sprintf("%v", data["fatherName"]))
 	addField("Mother's Name", fmt.Sprintf("%v", data["motherName"]))
@@ -173,7 +172,7 @@ func HandleEmailtoAdmin(username string) error {
 			<h2 style="color: #007BFF;">New Student Admission Details</h2>
 			<p>Dear Admin,</p>
 			<p>A new student has submitted their admission details.</p>
-			<p>Form Number: <strong>%d</strong></p>
+			<p>Form Number: <strong>%s</strong></p>
 			<p>Please find attached student details and related images below.</p>
 			<p>Best regards,</p>
 			<p><strong>panel.org.in</strong></p>
@@ -206,7 +205,7 @@ func HandleEmailtoCoordinator(username string) error {
 			<h2 style="color: #007BFF;">New Student Admission Details</h2>
 			<p>Dear Coordinator,</p>
 			<p>A new student has submitted their admission details.</p>
-			<p>Form Number: <strong>%d</strong></p>
+			<p>Form Number: <strong>%s</strong></p>
 			<p>Please find attached student details below.</p>
 			<p>Best regards,</p>
 			<p><strong>panel.org.in</strong></p>
@@ -234,7 +233,7 @@ func HandleEmailtoStudent(data map[string]interface{}) error {
 			<h2 style="color: #007BFF;">New Student Admission Details</h2>
 			<p>Dear Student,</p>
 			<p>Your admission form has been received.</p>
-			<p>Form Number: <strong>%d</strong></p>
+			<p>Form Number: <strong>%s</strong></p>
 			<p>Please find attached details below.</p>
 			<p>Best regards,</p>
 			<p><strong>panel.org.in</strong></p>
@@ -361,8 +360,8 @@ func RemoveFiles() {
 }
 
 func GenerateUniqueFormNumber() string {
-	now := time.Now().UnixNano()
-	rand.Seed(uint64(now))
-	randomNumber := rand.Intn(100000000) // Adjust the range as needed
-	return fmt.Sprintf("%d-%06d", now, randomNumber)
+	now := time.Now().Format("200601021504") // Date format: YYYYMMDD-HHMMSS
+	rand.Seed(uint64(time.Now().UnixNano()))
+	randomNumber := rand.Intn(1000000) // Generate a random number between 0 and 99999
+	return fmt.Sprintf("%s-%05d", now, randomNumber)
 }
