@@ -16,6 +16,7 @@ smtp:
   port: 587
   user: "aman7468051218@gmail.com"
   password: ""
+  from: "B.O.S.S.E."
 
 admin:
   email: "amanprasad7468@gmail.com"

@@ -12,9 +12,8 @@ type User struct {
 	Username     string `json:"username"`
 	PasswordHash string `json:"password_hash"`
 	Email        string `json:"email"`
-	Name		 string `json:"name"`
+	Name         string `json:"name"`
 }
-
 
 func Authenticate(username, password string) (*User, error) {
 	row := db.QueryRow("SELECT id, username, password_hash FROM users WHERE username=$1", username)
@@ -39,7 +38,7 @@ func Register(username, password, email, name string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	row := db.QueryRow("INSERT INTO users (username, password_hash, email, name) VALUES ($1, $2, $3, $4) RETURNING id", username, string(hash), email, name) 
+	row := db.QueryRow("INSERT INTO users (username, password_hash, email, name) VALUES ($1, $2, $3, $4) RETURNING id", username, string(hash), email, name)
 	var user User
 	err = row.Scan(&user.ID)
 	if err != nil {
@@ -49,10 +48,10 @@ func Register(username, password, email, name string) (*User, error) {
 }
 
 // function to fetch matching name on username field
-func FetchName(username string) (*User, error) {
+func FetchDetails(username string) (*User, error) {
 	var user User
-	row := db.QueryRow("SELECT name FROM users WHERE username=$1", username)
-	err := row.Scan(&user.Name)
+	row := db.QueryRow("SELECT name, email FROM users WHERE username=$1", username)
+	err := row.Scan(&user.Name, &user.Email)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -63,4 +62,3 @@ func FetchName(username string) (*User, error) {
 
 	return &user, nil
 }
-

@@ -10,6 +10,7 @@ type SmtpConfig struct {
     Port     string
     User     string
     Password string
+    From     string
 }
 
 type Config struct {

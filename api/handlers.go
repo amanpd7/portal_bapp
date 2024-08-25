@@ -200,6 +200,20 @@ func FormHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Email to admin sent successfully!")
 		}
 
+		err = middleware.HandleEmailtoCoordinator(username)
+		if err != nil {
+			fmt.Printf("Error sending email to coordinator: %v\n", err)
+		} else {
+			fmt.Println("Email to coordinator sent successfully!")
+		}
+
+		err = middleware.HandleEmailtoStudent(data)
+		if err != nil {
+			fmt.Printf("Error sending email to student: %v\n", err)
+		} else {
+			fmt.Println("Email to student sent successfully!")
+		}
+
 		middleware.RemoveFiles()
 
 	}(data, username)

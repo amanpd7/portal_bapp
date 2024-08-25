@@ -8,11 +8,20 @@ import (
 	"net/smtp"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	"github.com/aman1218/portal_bapp/config"
 	"github.com/aman1218/portal_bapp/db"
 	"github.com/jung-kurt/gofpdf"
+	"golang.org/x/exp/rand"
 )
+
+var formNumber int
+
+func init() {
+	formNumber, _ = strconv.Atoi(GenerateUniqueFormNumber())
+}
 
 func GeneratePDF(data map[string]interface{}) error {
 
@@ -60,7 +69,7 @@ func GeneratePDF(data map[string]interface{}) error {
 			pdf.Ln(8)
 		}
 	}
-
+	addField("Form Number", fmt.Sprintf("%d", formNumber))
 	addField("Student Name", fmt.Sprintf("%v", data["studentName"]))
 	addField("Father's Name", fmt.Sprintf("%v", data["fatherName"]))
 	addField("Mother's Name", fmt.Sprintf("%v", data["motherName"]))
@@ -129,9 +138,10 @@ func GeneratePDF(data map[string]interface{}) error {
 }
 
 func HandleEmailtoAdmin(username string) error {
-	userbyName, err := db.FetchName(username)
+	userDetails, err := db.FetchDetails(username)
 	if err != nil {
 		fmt.Printf("error fetching name: %v\n", err)
+
 	} else {
 		fmt.Println("Name fetched successfully")
 	}
@@ -156,21 +166,83 @@ func HandleEmailtoAdmin(username string) error {
 
 	imagePaths = append(imagePaths, pdfPath)
 
-	subject := fmt.Sprintf("New Student Admission Details Submitted by %s", userbyName.Name)
-	body := `
+	subject := fmt.Sprintf("New Student Admission Details Submitted by %s", userDetails.Name)
+	body := fmt.Sprintf(`
 		<html>
 		<body style="font-family: Arial, sans-serif; color: #333;">
 			<h2 style="color: #007BFF;">New Student Admission Details</h2>
 			<p>Dear Admin,</p>
 			<p>A new student has submitted their admission details.</p>
-			<p>Please find attached the student details and related images.</p>
+			<p>Form Number: <strong>%d</strong></p>
+			<p>Please find attached student details and related images below.</p>
 			<p>Best regards,</p>
 			<p><strong>panel.org.in</strong></p>
 		</body>
 		</html>
-	`
+	`, formNumber)
 
 	err = SendEmail(adminEmail, subject, body, pdfPath, imagePaths)
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func HandleEmailtoCoordinator(username string) error {
+	userDetails, err := db.FetchDetails(username)
+	if err != nil {
+		fmt.Printf("error fetching email: %v\n", err)
+	} else {
+		fmt.Println("Email fetched successfully")
+	}
+
+	pdfPath := "pdf/student_details.pdf"
+
+	subject := "New Student Admission Details Submitted"
+	body := fmt.Sprintf(`
+		<html>
+		<body style="font-family: Arial, sans-serif; color: #333;">
+			<h2 style="color: #007BFF;">New Student Admission Details</h2>
+			<p>Dear Coordinator,</p>
+			<p>A new student has submitted their admission details.</p>
+			<p>Form Number: <strong>%d</strong></p>
+			<p>Please find attached student details below.</p>
+			<p>Best regards,</p>
+			<p><strong>panel.org.in</strong></p>
+		</body>
+		</html>
+	`, formNumber)
+
+	err = SendEmail(userDetails.Email, subject, body, pdfPath, nil)
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func HandleEmailtoStudent(data map[string]interface{}) error {
+	studentEmail := fmt.Sprintf("%v", data["emailAddress"])
+
+	pdfPath := "pdf/student_details.pdf"
+
+	subject := "BOSSE Admission Details Submitted"
+	body := fmt.Sprintf(`
+		<html>
+		<body style="font-family: Arial, sans-serif; color: #333;">
+			<h2 style="color: #007BFF;">New Student Admission Details</h2>
+			<p>Dear Student,</p>
+			<p>Your admission form has been received.</p>
+			<p>Form Number: <strong>%d</strong></p>
+			<p>Please find attached details below.</p>
+			<p>Best regards,</p>
+			<p><strong>panel.org.in</strong></p>
+		</body>
+		</html>
+	`, formNumber)
+
+	err := SendEmail(studentEmail, subject, body, pdfPath, nil)
 	if err != nil {
 		return err
 	} else {
@@ -184,10 +256,11 @@ func SendEmail(toEmail string, subject string, body string, pdfPath string, imag
 	smtpPort := cfg.Port
 	smtpUser := cfg.User
 	smtpPassword := cfg.Password
+	smtpFrom := cfg.From
 
 	// Create the email headers
 	headers := make(map[string]string)
-	headers["From"] = smtpUser
+	headers["From"] = fmt.Sprintf("%s <%s>", smtpFrom, smtpUser)
 	headers["To"] = toEmail
 	headers["Subject"] = subject
 	headers["MIME-Version"] = "1.0"
@@ -285,4 +358,11 @@ func RemoveFiles() {
 			}
 		}
 	}
+}
+
+func GenerateUniqueFormNumber() string {
+	now := time.Now().UnixNano()
+	rand.Seed(uint64(now))
+	randomNumber := rand.Intn(100000000) // Adjust the range as needed
+	return fmt.Sprintf("%d-%06d", now, randomNumber)
 }
