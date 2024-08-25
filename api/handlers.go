@@ -77,7 +77,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if username == "Admin" {
+	if username == "admin" {
 		_, err := db.Register(req.Username, req.Password, req.Email, req.Name)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
