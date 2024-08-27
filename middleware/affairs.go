@@ -16,13 +16,8 @@ import (
 	"golang.org/x/exp/rand"
 )
 
-var formNumber string
 
-func init() {
-	formNumber = GenerateUniqueFormNumber()
-}
-
-func GeneratePDF(data map[string]interface{}) error {
+func GeneratePDF(data map[string]interface{}, formNumber string) error {
 
 	pdfDir := "pdf"
 	if _, err := os.Stat(pdfDir); os.IsNotExist(err) {
@@ -136,7 +131,7 @@ func GeneratePDF(data map[string]interface{}) error {
 	return nil
 }
 
-func HandleEmailtoAdmin(username string) error {
+func HandleEmailtoAdmin(username string, formNumber string) error {
 	userDetails, err := db.FetchDetails(username)
 	if err != nil {
 		fmt.Printf("error fetching name: %v\n", err)
@@ -188,7 +183,7 @@ func HandleEmailtoAdmin(username string) error {
 	}
 }
 
-func HandleEmailtoCoordinator(username string) error {
+func HandleEmailtoCoordinator(username string, formNumber string) error {
 	userDetails, err := db.FetchDetails(username)
 	if err != nil {
 		fmt.Printf("error fetching email: %v\n", err)
@@ -221,7 +216,7 @@ func HandleEmailtoCoordinator(username string) error {
 	}
 }
 
-func HandleEmailtoStudent(data map[string]interface{}) error {
+func HandleEmailtoStudent(data map[string]interface{}, formNumber string) error {
 	studentEmail := fmt.Sprintf("%v", data["emailAddress"])
 
 	pdfPath := "pdf/student_details.pdf"

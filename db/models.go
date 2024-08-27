@@ -13,6 +13,7 @@ type User struct {
 	PasswordHash string `json:"password_hash"`
 	Email        string `json:"email"`
 	Name         string `json:"name"`
+	Count        int   `json:"count"`
 }
 
 func Authenticate(username, password string) (*User, error) {
@@ -38,7 +39,7 @@ func Register(username, password, email, name string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	row := db.QueryRow("INSERT INTO users (username, password_hash, email, name) VALUES ($1, $2, $3, $4) RETURNING id", username, string(hash), email, name)
+	row := db.QueryRow("INSERT INTO users (username, password_hash, email, name, count) VALUES ($1, $2, $3, $4, $5) RETURNING id", username, string(hash), email, name, 0)
 	var user User
 	err = row.Scan(&user.ID)
 	if err != nil {
@@ -50,8 +51,8 @@ func Register(username, password, email, name string) (*User, error) {
 // function to fetch matching name on username field
 func FetchDetails(username string) (*User, error) {
 	var user User
-	row := db.QueryRow("SELECT name, email FROM users WHERE username=$1", username)
-	err := row.Scan(&user.Name, &user.Email)
+	row := db.QueryRow("SELECT name, email, count FROM users WHERE username=$1", username)
+	err := row.Scan(&user.Name, &user.Email, &user.Count)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -61,4 +62,12 @@ func FetchDetails(username string) (*User, error) {
 	}
 
 	return &user, nil
+}
+
+func UpdateCount(username string) error {
+	_, err := db.Exec("UPDATE users SET count = count + 1 WHERE username=$1", username)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/aman1218/portal_bapp/db"
@@ -40,9 +41,16 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Could not generate token", http.StatusInternalServerError)
 		return
+	} else {
+		count, err := db.FetchDetails(req.Username)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"token": token, "count": strconv.Itoa(count.Count)})
+
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -185,29 +193,42 @@ func FormHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func(data map[string]interface{}, username string) {
-		err := middleware.GeneratePDF(data)
+	formNumber := middleware.GenerateUniqueFormNumber()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	response := map[string]string{"formNumber": formNumber}
+	json.NewEncoder(w).Encode(response)
+
+	go func(data map[string]interface{}, username string, formNumber string) {
+		err := db.UpdateCount(username)
+		if err != nil {
+			fmt.Printf("Error updating count: %v\n", err)
+		} else {
+			fmt.Println("Count updated successfully!")
+		}
+		err = middleware.GeneratePDF(data, formNumber)
 		if err != nil {
 			fmt.Printf("Error generating PDF: %v\n", err)
 		} else {
 			fmt.Println("PDF generated successfully!")
 		}
 
-		err = middleware.HandleEmailtoAdmin(username)
+		err = middleware.HandleEmailtoAdmin(username, formNumber)
 		if err != nil {
 			fmt.Printf("Error sending email to admin: %v\n", err)
 		} else {
 			fmt.Println("Email to admin sent successfully!")
 		}
 
-		err = middleware.HandleEmailtoCoordinator(username)
+		err = middleware.HandleEmailtoCoordinator(username, formNumber)
 		if err != nil {
 			fmt.Printf("Error sending email to coordinator: %v\n", err)
 		} else {
 			fmt.Println("Email to coordinator sent successfully!")
 		}
 
-		err = middleware.HandleEmailtoStudent(data)
+		err = middleware.HandleEmailtoStudent(data, formNumber)
 		if err != nil {
 			fmt.Printf("Error sending email to student: %v\n", err)
 		} else {
@@ -216,6 +237,6 @@ func FormHandler(w http.ResponseWriter, r *http.Request) {
 
 		middleware.RemoveFiles()
 
-	}(data, username)
+	}(data, username, formNumber)
 
 }
