@@ -26,43 +26,106 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 
 	pdf := gofpdf.New("P", "mm", "A4", "")
 
-	pdf.SetFont("Arial", "B", 16)
+	pdf.SetMargins(15, 10, 10)
+	pdf.SetAutoPageBreak(true, 30)
 
+	pdf.SetFont("Arial", "B", 20)
+
+	// Add Page
 	pdf.AddPage()
 
-	pdf.Cell(0, 10, "Student Admission Details")
+	// Add School Logo
+	logoPath := "assets/logo.png"  // Replace with your logo's actual path
+	if _, err := os.Stat(logoPath); err == nil {
+		pdf.ImageOptions(logoPath, 10, 10, 30, 0, false, gofpdf.ImageOptions{ReadDpi: true}, 0, "")
+	}
+
+	// Add School Name next to the logo
+	pdf.SetXY(50, 15)
+	pdf.MultiCell(0, 10, "BOARD OF OPEN SCHOOLING\n& SKILL EDUCATION (B.O.S.S.E.)", "", "L", false)
+	pdf.Ln(7) // Slight line break before underline
+
+	// Underline the text
+	pdf.CellFormat(0, 10, "", "T", 0, "C", false, 0, "") // "C" centers the underline
+	// Line break to start adding data
+	pdf.Ln(15)
+
+	pdf.SetFont("Arial", "BU", 18)
+
+	// Center the "Application Details" text
+	pdf.SetXY(74, 45)
+	pdf.Cell(0, 10, "Application Details")
+
+
+	// Underline the text
+
+
+	pdf.Ln(15) // Line break after underline
+	// Title
+	pdf.SetFont("Arial", "B", 14)
+	pdf.Cell(0, 10, "Student Details:")
 	pdf.Ln(12)
 
+	// Add student photo
 	if photoFileName, ok := data["studentPhoto"].(string); ok {
-		photoPath := filepath.Join("images", photoFileName)
-		if _, err := os.Stat(photoPath); err == nil { // Check if file exists
-			pdf.ImageOptions(photoPath, 150, 10, 40, 0, false, gofpdf.ImageOptions{ReadDpi: true}, 0, "")
+		photoPath := filepath.Join("images", photoFileName)// Ensure the path is correctly set
+		if _, err := os.Stat(photoPath); err == nil {
+			// Define the position and size of the image
+			xPos := 170.0  // X position to move the image to the right
+			yPos := 50.0   // Y position, adjust as needed
+			boxWidth := 35.0  // Width of the image box
+			boxHeight := 45.0 // Height of the image box
+	
+			pdf.ImageOptions(photoPath, xPos, yPos, boxWidth, boxHeight, false, gofpdf.ImageOptions{ReadDpi: true}, 0, "")
+			pdf.SetDrawColor(0, 0, 0)  // Set the color to black (R, G, B)
+        	pdf.Rect(xPos, yPos, boxWidth, boxHeight, "D")
 		} else {
 			fmt.Println("Student photo not found:", photoPath)
 		}
 	}
+	
 
-	pdf.SetFont("Arial", "", 12)
+	// Set font for data fields
+	pdf.SetFont("Arial", "", 11)
 
+	// Function to add a field as a cell
 	addField := func(label string, value string) {
 		labelWidth := 50.0
 		valueWidth := 100.0
-
-		pdf.Cell(labelWidth, 10, label+":")
-		pdf.Cell(valueWidth, 10, value)
-		pdf.Ln(10)
+	
+		// Set font to bold for the label
+		pdf.SetFont("Arial", "B", 11)
+		pdf.CellFormat(labelWidth, 10, label+":", "1", 0, "", false, 0, "")
+	
+		// Set font back to regular for the value
+		pdf.SetFont("Arial", "", 11)
+		pdf.CellFormat(valueWidth, 10, value, "1", 0, "", false, 0, "")
+	
+		pdf.Ln(-1) // Moves to the next line after adding a field
 	}
+	
 
+	// Function to add array fields as cells
 	addArrayField := func(label string, values []interface{}) {
 		labelWidth := 50.0
-
-		pdf.Cell(labelWidth, 10, label+":")
-		pdf.Ln(10)
+		valueWidth := 150.0
+	
+		// Set font to bold for the label
+		pdf.SetFont("Arial", "B", 12)
+		pdf.CellFormat(labelWidth, 10, label, "1", 0, "", false, 0, "")
+	
+		// Set font back to regular for the values
+		pdf.SetFont("Arial", "", 12)
+		pdf.Ln(-1)
 		for _, v := range values {
-			pdf.Cell(labelWidth+10, 8, fmt.Sprintf("- %v", v))
+			pdf.CellFormat(valueWidth, 8, fmt.Sprintf("- %v", v), "1", 0, "", false, 0, "")
 			pdf.Ln(8)
 		}
+		pdf.Ln(2)
 	}
+	
+
+	// Student Information
 	addField("Form Number", formNumber)
 	addField("Student Name", fmt.Sprintf("%v", data["studentName"]))
 	addField("Father's Name", fmt.Sprintf("%v", data["fatherName"]))
@@ -78,37 +141,34 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 	addField("Pin Code", fmt.Sprintf("%v", data["pinCode"]))
 	addField("Aadhar Number", fmt.Sprintf("%v", data["aadharNumber"]))
 
+	// Education Details
 	pdf.Ln(5)
-
 	pdf.SetFont("Arial", "B", 14)
-	pdf.Cell(0, 10, "Education Details")
+	pdf.Cell(0, 10, "Education Details:")
 	pdf.Ln(10)
-
-	pdf.SetFont("Arial", "", 12)
+	pdf.SetFont("Arial", "", 11)
 	addField("Board", fmt.Sprintf("%v", data["educationDetails"].(map[string]interface{})["board"]))
 	addField("Registration Number", fmt.Sprintf("%v", data["educationDetails"].(map[string]interface{})["registrationNumber"]))
 	addField("Roll Number", fmt.Sprintf("%v", data["educationDetails"].(map[string]interface{})["rollNumber"]))
 	addField("Year of Passing", fmt.Sprintf("%v", data["educationDetails"].(map[string]interface{})["yearOfPassing"]))
 
+	// Admission Details
 	pdf.Ln(5)
-
 	pdf.SetFont("Arial", "B", 14)
-	pdf.Cell(0, 10, "Admission Details")
+	pdf.Cell(0, 10, "Admission Details:")
 	pdf.Ln(10)
-
-	pdf.SetFont("Arial", "", 12)
+	pdf.SetFont("Arial", "", 11)
 	addField("Admission Mode", fmt.Sprintf("%v", data["admissionMode"]))
 	addField("Admission Session", fmt.Sprintf("%v", data["admissionSession"]))
 	addField("Course", fmt.Sprintf("%v", data["course"]))
 	addField("Category", fmt.Sprintf("%v", data["category"]))
 
+	// Subjects
 	pdf.Ln(5)
-
 	pdf.SetFont("Arial", "B", 14)
-	pdf.Cell(0, 10, "Subjects")
+	pdf.Cell(0, 10, "Subjects:")
 	pdf.Ln(10)
-
-	pdf.SetFont("Arial", "", 12)
+	pdf.SetFont("Arial", "", 11)
 	if languageSubjects, ok := data["languageSubjects"].([]interface{}); ok {
 		addArrayField("Language Subjects", languageSubjects)
 	}
@@ -121,9 +181,8 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 		addArrayField("Vocational Subjects", vocationalSubjects)
 	}
 
-	pdf.Ln(5)
-
-	err := pdf.OutputFileAndClose("pdf/student_details.pdf")
+	// Save the PDF file
+	err := pdf.OutputFileAndClose(filepath.Join(pdfDir, "application_details.pdf"))
 	if err != nil {
 		return err
 	}
@@ -143,7 +202,7 @@ func HandleEmailtoAdmin(username string, formNumber string) error {
 	cfg := config.AppConfig
 	adminEmail := cfg.Admin.Email
 
-	pdfPath := "pdf/student_details.pdf"
+	pdfPath := "pdf/application_details.pdf"
 
 	uploadsDir := "images"
 	files, err := os.ReadDir(uploadsDir)
@@ -191,7 +250,7 @@ func HandleEmailtoCoordinator(username string, formNumber string) error {
 		fmt.Println("Email fetched successfully")
 	}
 
-	pdfPath := "pdf/student_details.pdf"
+	pdfPath := "pdf/application_details.pdf"
 
 	subject := "New Student Admission Details Submitted"
 	body := fmt.Sprintf(`
@@ -219,7 +278,7 @@ func HandleEmailtoCoordinator(username string, formNumber string) error {
 func HandleEmailtoStudent(data map[string]interface{}, formNumber string) error {
 	studentEmail := fmt.Sprintf("%v", data["emailAddress"])
 
-	pdfPath := "pdf/student_details.pdf"
+	pdfPath := "pdf/application_details.pdf"
 
 	subject := "BOSSE Admission Details Submitted"
 	body := fmt.Sprintf(`
@@ -332,7 +391,7 @@ func SendEmail(toEmail string, subject string, body string, pdfPath string, imag
 
 func RemoveFiles() {
 	// Remove the PDF file
-	err := os.Remove("pdf/student_details.pdf")
+	err := os.Remove("pdf/application_details.pdf")
 	if err != nil {
 		fmt.Printf("Error removing PDF file: %v\n", err)
 	}
