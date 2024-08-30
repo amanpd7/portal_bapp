@@ -308,12 +308,13 @@ func SendEmail(toEmail string, subject string, body string, pdfPath string, imag
 	smtpHost := cfg.Host
 	smtpPort := cfg.Port
 	smtpUser := cfg.User
+	smtpEmail := cfg.Email
 	smtpPassword := cfg.Password
 	smtpFrom := cfg.From
 
 	// Create the email headers
 	headers := make(map[string]string)
-	headers["From"] = fmt.Sprintf("%s <%s>", smtpFrom, smtpUser)
+	headers["From"] = fmt.Sprintf("%s <%s>", smtpFrom, smtpEmail)
 	headers["To"] = toEmail
 	headers["Subject"] = subject
 	headers["MIME-Version"] = "1.0"

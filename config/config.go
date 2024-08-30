@@ -9,6 +9,7 @@ type SmtpConfig struct {
     Host     string
     Port     string
     User     string
+    Email    string
     Password string
     From     string
 }

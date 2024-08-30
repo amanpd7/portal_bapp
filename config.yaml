@@ -12,9 +12,10 @@ server:
   port: 6969
 
 smtp:
-  host: "smtp.gmail.com"
+  host: "mail.panel.org.in"
   port: 587
-  user: "aman7468051218@gmail.com"
+  user: "panel"
+  email: "bosse@panel.org.in"
   password: ""
   from: "B.O.S.S.E."
 
