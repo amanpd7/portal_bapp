@@ -2,9 +2,11 @@ package middleware
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/smtp"
 	"os"
 	"path/filepath"
@@ -15,7 +17,6 @@ import (
 	"github.com/jung-kurt/gofpdf"
 	"golang.org/x/exp/rand"
 )
-
 
 func GeneratePDF(data map[string]interface{}, formNumber string) error {
 
@@ -35,7 +36,7 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 	pdf.AddPage()
 
 	// Add School Logo
-	logoPath := "assets/logo.png"  // Replace with your logo's actual path
+	logoPath := "assets/logo.png" // Replace with your logo's actual path
 	if _, err := os.Stat(logoPath); err == nil {
 		pdf.ImageOptions(logoPath, 10, 10, 30, 0, false, gofpdf.ImageOptions{ReadDpi: true}, 0, "")
 	}
@@ -56,9 +57,7 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 	pdf.SetXY(74, 45)
 	pdf.Cell(0, 10, "Application Details")
 
-
 	// Underline the text
-
 
 	pdf.Ln(15) // Line break after underline
 	// Title
@@ -68,22 +67,21 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 
 	// Add student photo
 	if photoFileName, ok := data["studentPhoto"].(string); ok {
-		photoPath := filepath.Join("images", photoFileName)// Ensure the path is correctly set
+		photoPath := filepath.Join("images", photoFileName) // Ensure the path is correctly set
 		if _, err := os.Stat(photoPath); err == nil {
 			// Define the position and size of the image
-			xPos := 170.0  // X position to move the image to the right
-			yPos := 50.0   // Y position, adjust as needed
+			xPos := 170.0     // X position to move the image to the right
+			yPos := 50.0      // Y position, adjust as needed
 			boxWidth := 35.0  // Width of the image box
 			boxHeight := 45.0 // Height of the image box
-	
+
 			pdf.ImageOptions(photoPath, xPos, yPos, boxWidth, boxHeight, false, gofpdf.ImageOptions{ReadDpi: true}, 0, "")
-			pdf.SetDrawColor(0, 0, 0)  // Set the color to black (R, G, B)
-        	pdf.Rect(xPos, yPos, boxWidth, boxHeight, "D")
+			pdf.SetDrawColor(0, 0, 0) // Set the color to black (R, G, B)
+			pdf.Rect(xPos, yPos, boxWidth, boxHeight, "D")
 		} else {
 			fmt.Println("Student photo not found:", photoPath)
 		}
 	}
-	
 
 	// Set font for data fields
 	pdf.SetFont("Arial", "", 11)
@@ -92,28 +90,27 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 	addField := func(label string, value string) {
 		labelWidth := 50.0
 		valueWidth := 100.0
-	
+
 		// Set font to bold for the label
 		pdf.SetFont("Arial", "B", 11)
 		pdf.CellFormat(labelWidth, 10, label+":", "1", 0, "", false, 0, "")
-	
+
 		// Set font back to regular for the value
 		pdf.SetFont("Arial", "", 11)
 		pdf.CellFormat(valueWidth, 10, value, "1", 0, "", false, 0, "")
-	
+
 		pdf.Ln(-1) // Moves to the next line after adding a field
 	}
-	
 
 	// Function to add array fields as cells
 	addArrayField := func(label string, values []interface{}) {
 		labelWidth := 50.0
 		valueWidth := 150.0
-	
+
 		// Set font to bold for the label
 		pdf.SetFont("Arial", "B", 12)
 		pdf.CellFormat(labelWidth, 10, label, "1", 0, "", false, 0, "")
-	
+
 		// Set font back to regular for the values
 		pdf.SetFont("Arial", "", 12)
 		pdf.Ln(-1)
@@ -123,7 +120,6 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 		}
 		pdf.Ln(2)
 	}
-	
 
 	// Student Information
 	addField("Form Number", formNumber)
@@ -381,12 +377,65 @@ func SendEmail(toEmail string, subject string, body string, pdfPath string, imag
 
 	// Convert buffer to bytes and send the email
 	auth := smtp.PlainAuth("", smtpUser, smtpPassword, smtpHost)
-	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, smtpUser, []string{toEmail}, emailBody.Bytes())
 
+	// Connect to the SMTP server (unencrypted connection first)
+	conn, err := net.Dial("tcp", smtpHost+":"+smtpPort)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect to the server: %v", err)
+	}
+	defer conn.Close()
+
+	// Create a new SMTP client from the connection
+	client, err := smtp.NewClient(conn, smtpHost)
+	if err != nil {
+		return fmt.Errorf("failed to create SMTP client: %v", err)
+	}
+	defer client.Close()
+
+	// Start TLS encryption (upgrade the connection)
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true, // Skip verification for testing, but not recommended for production
+		ServerName:         smtpHost,
+	}
+	if err = client.StartTLS(tlsConfig); err != nil {
+		return fmt.Errorf("failed to start TLS: %v", err)
 	}
 
+	// Authenticate with the SMTP server
+	if err = client.Auth(auth); err != nil {
+		return fmt.Errorf("failed to authenticate: %v", err)
+	}
+
+	// Set the sender and recipient
+	if err = client.Mail(smtpEmail); err != nil {
+		return fmt.Errorf("failed to set sender: %v", err)
+	}
+	if err = client.Rcpt(toEmail); err != nil {
+		return fmt.Errorf("failed to set recipient: %v", err)
+	}
+
+	// Send the email data
+	w, err := client.Data()
+	if err != nil {
+		return fmt.Errorf("failed to send data command: %v", err)
+	}
+
+	_, err = w.Write(emailBody.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to write message: %v", err)
+	}
+
+	err = w.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close message: %v", err)
+	}
+
+	err = client.Quit()
+	if err != nil {
+		return fmt.Errorf("failed to quit client: %v", err)
+	}
+
+	fmt.Printf("Email successfully sent to %s\n", toEmail)
 	return nil
 }
 
