@@ -11,6 +11,7 @@ FROM alpine:latest
 ENV APPHOME=/app
 WORKDIR $APPHOME
 COPY --from=builder /main ./
+COPY ./assets ./assets
 COPY ./config.yaml ./config.yaml
 RUN chmod 777 ./main
 EXPOSE 6969
