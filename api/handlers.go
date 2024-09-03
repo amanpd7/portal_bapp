@@ -33,7 +33,11 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, err := db.Authenticate(req.Username, req.Password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if user == nil {
+		http.Error(w, "Authentication failed", http.StatusUnauthorized)
 		return
 	}
 
@@ -133,7 +137,7 @@ func FormHandler(w http.ResponseWriter, r *http.Request) {
 	for key, values := range r.MultipartForm.Value {
 		if len(values) > 0 {
 			switch key {
-			case "dob", "educationDetails", "languageSubjects", "nonLanguageSubjects", "vocationalSubjects":
+			case "dob", "educationDetails", "languageSubjects", "nonLanguageSubjects", "vocationalSubjects", "addedSubjects":
 				var jsonValue interface{}
 				err := json.Unmarshal([]byte(values[0]), &jsonValue)
 				if err != nil {
@@ -200,6 +204,8 @@ func FormHandler(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string{"formNumber": formNumber}
 	json.NewEncoder(w).Encode(response)
 
+	fmt.Println("%+v\n", data)
+
 	go func(data map[string]interface{}, username string, formNumber string) {
 		err := db.UpdateCount(username)
 		if err != nil {
@@ -238,5 +244,4 @@ func FormHandler(w http.ResponseWriter, r *http.Request) {
 		middleware.RemoveFiles()
 
 	}(data, username, formNumber)
-
 }

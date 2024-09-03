@@ -102,32 +102,15 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 		pdf.Ln(-1) // Moves to the next line after adding a field
 	}
 
-	// Function to add array fields as cells
-	addArrayField := func(label string, values []interface{}) {
-		labelWidth := 50.0
-		valueWidth := 150.0
-
-		// Set font to bold for the label
-		pdf.SetFont("Arial", "B", 12)
-		pdf.CellFormat(labelWidth, 10, label, "1", 0, "", false, 0, "")
-
-		// Set font back to regular for the values
-		pdf.SetFont("Arial", "", 12)
-		pdf.Ln(-1)
-		for _, v := range values {
-			pdf.CellFormat(valueWidth, 8, fmt.Sprintf("- %v", v), "1", 0, "", false, 0, "")
-			pdf.Ln(8)
-		}
-		pdf.Ln(2)
-	}
-
 	// Student Information
 	addField("Form Number", formNumber)
 	addField("Student Name", fmt.Sprintf("%v", data["studentName"]))
 	addField("Father's Name", fmt.Sprintf("%v", data["fatherName"]))
 	addField("Mother's Name", fmt.Sprintf("%v", data["motherName"]))
 	addField("Gender", fmt.Sprintf("%v", data["gender"]))
-	addField("Date of Birth", fmt.Sprintf("%s/%s/%s", data["dob"].(map[string]interface{})["day"], data["dob"].(map[string]interface{})["month"], data["dob"].(map[string]interface{})["year"]))
+	if dob, ok := data["dob"].(map[string]interface{}); ok {
+		addField("Date of Birth", fmt.Sprintf("%s/%s/%s", dob["day"], dob["month"], dob["year"]))
+	}
 	addField("Contact Number", fmt.Sprintf("%v", data["contactNumber"]))
 	addField("Email Address", fmt.Sprintf("%v", data["emailAddress"]))
 	addField("Permanent Address", fmt.Sprintf("%v", data["permanentAddress"]))
@@ -143,10 +126,12 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 	pdf.Cell(0, 10, "Education Details:")
 	pdf.Ln(10)
 	pdf.SetFont("Arial", "", 11)
-	addField("Board", fmt.Sprintf("%v", data["educationDetails"].(map[string]interface{})["board"]))
-	addField("Registration Number", fmt.Sprintf("%v", data["educationDetails"].(map[string]interface{})["registrationNumber"]))
-	addField("Roll Number", fmt.Sprintf("%v", data["educationDetails"].(map[string]interface{})["rollNumber"]))
-	addField("Year of Passing", fmt.Sprintf("%v", data["educationDetails"].(map[string]interface{})["yearOfPassing"]))
+	if educationDetails, ok := data["educationDetails"].(map[string]interface{}); ok {
+		addField("Board", fmt.Sprintf("%v", educationDetails["board"]))
+		addField("Registration Number", fmt.Sprintf("%v", educationDetails["registrationNumber"]))
+		addField("Roll Number", fmt.Sprintf("%v", educationDetails["rollNumber"]))
+		addField("Year of Passing", fmt.Sprintf("%v", educationDetails["yearOfPassing"]))
+	}
 
 	// Admission Details
 	pdf.Ln(5)
@@ -165,16 +150,60 @@ func GeneratePDF(data map[string]interface{}, formNumber string) error {
 	pdf.Cell(0, 10, "Subjects:")
 	pdf.Ln(10)
 	pdf.SetFont("Arial", "", 11)
+
+	// Language Subjects
 	if languageSubjects, ok := data["languageSubjects"].([]interface{}); ok {
-		addArrayField("Language Subjects", languageSubjects)
+		pdf.SetFont("Arial", "B", 12)
+		pdf.Cell(0, 10, "Language Subjects:")
+		pdf.Ln(10)
+		pdf.SetFont("Arial", "", 11)
+		for _, subject := range languageSubjects {
+			pdf.Cell(0, 10, fmt.Sprintf("- %v", subject))
+			pdf.Ln(8)
+		}
 	}
 
+	// Non-Language Subjects
 	if nonLanguageSubjects, ok := data["nonLanguageSubjects"].([]interface{}); ok {
-		addArrayField("Non-Language Subjects", nonLanguageSubjects)
+		pdf.SetFont("Arial", "B", 12)
+		pdf.Cell(0, 10, "Non-Language Subjects:")
+		pdf.Ln(10)
+		pdf.SetFont("Arial", "", 11)
+		for _, subject := range nonLanguageSubjects {
+			pdf.Cell(0, 10, fmt.Sprintf("- %v", subject))
+			pdf.Ln(8)
+		}
 	}
 
+	// Vocational Subjects
 	if vocationalSubjects, ok := data["vocationalSubjects"].([]interface{}); ok {
-		addArrayField("Vocational Subjects", vocationalSubjects)
+		pdf.SetFont("Arial", "B", 12)
+		pdf.Cell(0, 10, "Vocational Subjects:")
+		pdf.Ln(10)
+		pdf.SetFont("Arial", "", 11)
+		for _, subject := range vocationalSubjects {
+			pdf.Cell(0, 10, fmt.Sprintf("- %v", subject))
+			pdf.Ln(8)
+		}
+	}
+
+	// Added Subjects
+	if addedSubjects, ok := data["addedSubjects"].([]interface{}); ok {
+		pdf.SetFont("Arial", "B", 12)
+		pdf.Cell(0, 10, "Added Subjects: (TOC candidate)")
+		pdf.Ln(10)
+		pdf.SetFont("Arial", "", 11)
+		for _, subject := range addedSubjects {
+			if subjectMap, ok := subject.(map[string]interface{}); ok {
+				addField("Subject Type", fmt.Sprintf("%v", subjectMap["subjectType"]))
+				addField("Maximum Marks", fmt.Sprintf("%v", subjectMap["maximumMarks"]))
+				addField("Obtained Marks", fmt.Sprintf("%v", subjectMap["obtainedMarks"]))
+				addField("Practical Marks", fmt.Sprintf("%v", subjectMap["practicalMarks"]))
+				addField("Theory Marks", fmt.Sprintf("%v", subjectMap["theoryMarks"]))
+				addField("Assignment Marks", fmt.Sprintf("%v", subjectMap["assignmentMarks"]))
+				pdf.Ln(5) // Add a little space after each subject
+			}
+		}
 	}
 
 	// Save the PDF file
